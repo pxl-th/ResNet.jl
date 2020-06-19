@@ -1,0 +1,7 @@
+name = "ResNet"
+uuid = "58a9d5b1-5aa3-499c-8f61-cc8cc0c973ca"
+authors = ["Anton Smirnov"]
+version = "0.1.0"
+
+[compat]
+julia = "1.4"
