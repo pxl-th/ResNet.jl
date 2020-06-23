@@ -1,2 +1,6 @@
 /docs/build/
 Manifest.toml
+*-pretrained/
+*.dll
+*.bson
+
