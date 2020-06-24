@@ -2,11 +2,9 @@
 
 Implementation of [ResNet](https://arxiv.org/abs/1512.03385) in Julia language.
 
-Pretrained weights on ImageNet.
+Pretrained on ImageNet weights were ported from PyTorch, tested and confirmed to give identical results with the PyTorch's version.
 
-Ported from PyTorch, tested and confirmed to give identical results with the PyTorch's version.
-
-|Model|URL|
+|Model|Weights|
 |:-:|:-:|
 |ResNet18|[Download](https://drive.google.com/file/d/1cFC6vUoCC0PsALfDpW6BK3A4mG5bIq4z/view?usp=sharing)|
 |ResNet34|[Download](https://drive.google.com/file/d/1UJsLcWtab3lPMg5Vq-8OlDrjg-NT7Mso/view?usp=sharing)|
