@@ -20,18 +20,29 @@ function (model::ResNetModel)(x::T) where T
     x |> model.entry |> model.encoder |> model.head
 end
 
-function (model::ResNetModel)(x::T, features_only::Symbol) where T
-    x |> model.entry |> model.encoder
-end
-
 function BasicBlock(
     in_filters::Int, out_filters::Int, stride::Int = 1, connection = +,
-)
+)::Chain
     layer = Chain(
         Conv((3, 3), in_filters => out_filters, stride=stride, pad=1, bias=Flux.Zeros(Float32)),
         BatchNorm(out_filters, relu),
         Conv((3, 3), out_filters => out_filters, pad=1, bias=Flux.Zeros(Float32)),
         BatchNorm(out_filters),
+    )
+    Chain(SkipConnection(layer, connection), x -> relu.(x))
+end
+
+function Bottleneck(
+    in_filters::Int, out_filters::Int, stride::Int = 1, connection = +,
+    expansion::Int = 4,
+)::Chain
+    layer = Chain(
+        Conv((1, 1), in_filters => out_filters, bias=Flux.Zeros(Float32)),
+        BatchNorm(out_filters, relu),
+        Conv((3, 3), out_filters => out_filters, stride=stride, pad=1, bias=Flux.Zeros(Float32)),
+        BatchNorm(out_filters, relu),
+        Conv((1, 1), out_filters => out_filters * expansion, bias=Flux.Zeros(Float32)),
+        BatchNorm(out_filters * expansion),
     )
     Chain(SkipConnection(layer, connection), x -> relu.(x))
 end
@@ -47,22 +58,27 @@ function make_connection(in_filters::Int, out_filters::Int, stride::Int)
 end
 
 function make_layer(
-    in_filters::Int, out_filters::Int, repeat::Int, stride::Int = 1,
-)
-    connection = make_connection(in_filters, out_filters, stride)
-    Chain(
-        BasicBlock(in_filters, out_filters, stride, connection),
-        [BasicBlock(out_filters, out_filters) for i in 2:repeat]...
-    )
+    in_filters::Int, out_filters::Int, repeat::Int,
+    block, expansion::Int, stride::Int = 1,
+)::Chain
+    connection = make_connection(in_filters, out_filters * expansion, stride)
+    layer = [block(in_filters, out_filters, stride, connection)]
+    in_filters = out_filters * expansion
+    for i in 2:repeat
+        push!(layer, block(in_filters, out_filters))
+    end
+    Chain(layer...)
 end
-
 
 function resnet(size::Int = 18, classes::Int = 1000)
     filters = [64, 128, 256, 512]
     strides = [1, 2, 2, 2]
-    repeats = Dict(
-        18 => [2, 2, 2, 2],
-        34 => [3, 4, 6, 3],
+    repeats, block, expansion = Dict(
+        18 => ([2, 2, 2, 2], BasicBlock, 1),
+        34 => ([3, 4, 6, 3], BasicBlock, 1),
+        50 => ([3, 4, 6, 3], Bottleneck, 4),
+        101 => ([3, 4, 23, 3], Bottleneck, 4),
+        152 => ([3, 8, 36, 3], Bottleneck, 4),
     )[size]
 
     entry = Chain(
@@ -70,13 +86,18 @@ function resnet(size::Int = 18, classes::Int = 1000)
         BatchNorm(64, relu),
         MaxPool((3, 3), pad=(1, 1), stride=(2, 2)),
     )
+    head = Chain(MeanPool((7, 7)), flatten, Dense(512 * expansion, classes))
+
     encoder = []
     in_filters = 64
     for (out_filters, repeat, stride) in zip(filters, repeats, strides)
-        push!(encoder, make_layer(in_filters, out_filters, repeat, stride))
-        in_filters = out_filters
+        layer = make_layer(
+            in_filters, out_filters, repeat,
+            block, expansion, stride,
+        )
+        push!(encoder, layer)
+        in_filters = out_filters * expansion
     end
-    head = Chain(MeanPool((7, 7)), flatten, Dense(512, classes))
     ResNetModel(entry, Chain(encoder...), head)
 end
 
@@ -168,22 +189,22 @@ end
 
 
 function load()
-    path = "resnet34-pretrained.bson"
-    dir = raw"C:\Users\tonys\projects\julia\ResNet\resnet34-pretrained"
+    path = "resnet101-pretrained.bson"
+    dir = raw"C:\Users\tonys\projects\julia\ResNet\resnet101-pretrained"
     weights_paths = readdir(dir, join=true)
 
     pid = 1
-    model = resnet(34, 1000)
-    # @info "Loading model"
-    # pid = load_entry(model.entry, weights_paths, pid)
-    # pid = load_entry(model.encoder, weights_paths, pid)
-    # pid = load_entry(model.head, weights_paths, pid)
-    # @info "Loaded"
+    model = resnet(101, 1000)
+    @info "Loading model"
+    pid = load_entry(model.entry, weights_paths, pid)
+    pid = load_entry(model.encoder, weights_paths, pid)
+    pid = load_entry(model.head, weights_paths, pid)
+    @info "Loaded"
 
-    # parameters = params(model) .|> cpu
-    # @save path parameters
-    @load path parameters
-    loadweights!(model, parameters)
+    parameters = params(model) .|> cpu
+    @save path parameters
+    # @load path parameters
+    # loadweights!(model, parameters)
     testmode!(model)
 
     images = [
@@ -199,6 +220,7 @@ function load()
 
         y = Flux.softmax(model(image)[:, 1])
         top5 = sortperm(y)[end - 4:end]
+        println(path)
         println(top5 .- 1)
         println(y[top5])
         println("===========")
