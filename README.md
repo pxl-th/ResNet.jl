@@ -1,6 +1,6 @@
 # ResNet
 
-Implementation of ResNet in Julia language.
+Implementation of [ResNet](https://arxiv.org/abs/1512.03385) in Julia language.
 
 Pretrained weights on ImageNet.
 
@@ -10,7 +10,9 @@ Ported from PyTorch, tested and confirmed to give identical results with the PyT
 |:-:|:-:|
 |ResNet18|[Download](https://drive.google.com/file/d/1cFC6vUoCC0PsALfDpW6BK3A4mG5bIq4z/view?usp=sharing)|
 |ResNet34|[Download](https://drive.google.com/file/d/1UJsLcWtab3lPMg5Vq-8OlDrjg-NT7Mso/view?usp=sharing)|
-|ResNet50|Coming soon...|
+|ResNet50|[Download](https://drive.google.com/file/d/12E1bTVD818FwfA0RsZ8uP3RrrD6vVHzc/view?usp=sharing)|
+|ResNet101|[Download](https://drive.google.com/file/d/10E3AD5pCbEefEFPbG4UAXLhmISMvgnt2/view?usp=sharing)|
+|ResNet152|[Download](https://drive.google.com/file/d/1NZ-8d9PrnhAsOSdIZNOYop1iA3bYyDex/view?usp=sharing)|
 
 ## How to load
 
@@ -30,7 +32,27 @@ path = "./resnet18-pretrained.bson"
 loadweights!(model, parameters)
 ```
 
-## TODO
+## Inference
 
-- ResNet50
-- More docs
+Given image one can perform inference simply by calling model
+
+```julia
+image = ...
+y = model(image)
+```
+
+or if you want to extract features
+
+```julia
+features = image |> model.entry |> model.encoder
+```
+
+or extract list of features
+
+```julia
+entry = image |> model.entry
+features = [model.encoder[1](entry)]
+for encoder in model.encoder[2:end]
+    push!(features, encoder(features[end]))
+end
+```
