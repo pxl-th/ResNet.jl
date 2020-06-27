@@ -1,5 +1,8 @@
 # ResNet
 
+**Note** this package requires `Flux#master` in order to be able to disable bias in convolutional layers,
+as there is no release with this ability yet.
+
 Implementation of [ResNet](https://arxiv.org/abs/1512.03385) in Julia language.
 
 Pretrained on ImageNet weights were ported from PyTorch, tested and confirmed to give identical results with the PyTorch's version.
@@ -38,6 +41,7 @@ Given image one can perform inference simply by calling model
 image = ...
 y = model(image)
 ```
+
 
 or if you want to extract features
 
