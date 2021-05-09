@@ -33,3 +33,25 @@ Flux.@functor Shortcut
 function (s::Shortcut)(mx::AbstractArray{T}, x::AbstractArray{T}) where T
     mx + s.s(x)
 end
+
+function make_connection(channels::Pair{Int64, Int64}, stride::Int64)
+    stride == 1 && channels[1] == channels[2] && return +
+    Shortcut(Chain(
+        Conv((1, 1), channels; stride, bias=false), BatchNorm(channels[2]),
+    ))
+end
+
+function make_layer(
+    block, channels::Pair{Int64, Int64}, repeat::Int64,
+    expansion::Int64, stride::Int64 = 1,
+)
+    expanded_channels = channels[2] * expansion
+    connection = make_connection(channels[1]=>expanded_channels, stride)
+
+    layer = []
+    push!(layer, block(channels, stride, connection))
+    for i in 2:repeat
+        push!(layer, block(expanded_channels=>channels[2]))
+    end
+    Chain(layer...)
+end

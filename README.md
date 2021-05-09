@@ -5,8 +5,11 @@
 Create model:
 
 ```julia
-model = ResNetModel(34, 10)
+model = ResNetModel(;size=34, in_channels=3, classes=10)
 ```
+
+or you can ommit classification layer,
+by specifying number of `classes` as `nothing`.
 
 - simple:
 
@@ -23,10 +26,5 @@ features = x |> model.entry |> model.encoder
 - extract list of features:
 
 ```julia
-features = []
-o = x |> model.entry
-for enc in model.encoder
-    o = o |> enc
-    push!(features, o)
-end
+features = model(x, Val(:stages))
 ```

@@ -1,62 +1,76 @@
-struct ResNetModel{E, C, H}
+struct ResNetModel{E, P, C, H}
     entry::E
-    encoder::C
+    pooling::P
+    layers::C
     head::H
 end
 Flux.@functor ResNetModel
 
-function (model::ResNetModel)(x::T) where T
-    x |> model.entry |> model.encoder |> model.head
-end
-
-function make_connection(channels::Pair{Int64, Int64}, stride::Int)
-    stride == 1 && channels[1] == channels[2] && return +
-    Shortcut(Chain(
-        Conv((1, 1), channels; stride, bias=false), BatchNorm(channels[2]),
-    ))
-end
-
-function make_layer(
-    block, channels::Pair{Int64, Int64}, repeat::Int64,
-    expansion::Int64, stride::Int64 = 1,
+function ResNetModel(;
+    size::Int64 = 18,
+    in_channels::Int64 = 3,
+    classes::Union{Int64, Nothing} = 1000,
 )
-    layer = []
-    expanded_channels = channels[2] * expansion
-
-    connection = make_connection(channels[1]=>expanded_channels, stride)
-    push!(layer, block(channels, stride, connection))
-
-    for i in 2:repeat
-        push!(layer, block(expanded_channels=>channels[2]))
+    config = Dict(
+        18=>([2, 2, 2, 2], BasicBlock, 1),
+        34=>([3, 4, 6, 3], BasicBlock, 1),
+        50=>([3, 4, 6, 3], Bottleneck, 4),
+        101=>([3, 4, 23, 3], Bottleneck, 4),
+        152=>([3, 8, 36, 3], Bottleneck, 4),
+    )
+    if !(size in keys(config))
+        throw(
+            "Invalid size if the model [$size]. " *
+            "Supported sizes are $(keys(config))."
+        )
     end
-    Chain(layer...)
-end
 
-function ResNetModel(size::Int64 = 18, classes::Int64 = 1000)
     channels = [64, 128, 256, 512]
     strides = [1, 2, 2, 2]
-    repeats, block, expansion = Dict(
-        18 => ([2, 2, 2, 2], BasicBlock, 1),
-        34 => ([3, 4, 6, 3], BasicBlock, 1),
-        50 => ([3, 4, 6, 3], Bottleneck, 4),
-        101 => ([3, 4, 23, 3], Bottleneck, 4),
-        152 => ([3, 8, 36, 3], Bottleneck, 4),
-    )[size]
+    repeats, block, expansion = config[size]
 
     entry = Chain(
-        Conv((7, 7), 3=>64, pad=3, stride=2, bias=false),
+        Conv((7, 7), in_channels=>64, pad=3, stride=2, bias=false),
         BatchNorm(64, relu),
-        MaxPool((3, 3), pad=1, stride=2),
     )
-    head = Chain(MeanPool((7, 7)), flatten, Dense(512 * expansion, classes))
+    pooling = MaxPool((3, 3), pad=1, stride=2)
 
-    encoder = []
+    if classes ≢ nothing
+        head = Chain(
+            MeanPool((7, 7)), flatten, Dense(512 * expansion, classes),
+        )
+    else
+        head = nothing
+    end
+
+    layers = []
     in_channels = 64
     for (out_channels, repeat, stride) in zip(channels, repeats, strides)
-        push!(encoder, make_layer(
+        push!(layers, make_layer(
             block, in_channels=>out_channels, repeat, expansion, stride
         ))
         in_channels = out_channels * expansion
     end
-    ResNetModel(entry, Chain(encoder...), head)
+
+    ResNetModel(entry, pooling, Chain(layers...), head)
+end
+
+function (m::ResNetModel)(x::AbstractArray{T}) where T
+    x |> m.entry |> m.pooling |> m.layers |> m.head
+end
+
+function (m::ResNetModel)(x, ::Val{:stages})
+    stages = Vector{typeof(x)}(undef, 0)
+    push!(stages, x)
+
+    o = x |> m.entry
+    push!(stages, o)
+    o = o |> m.pooling
+
+    for l in m.layers
+        o = o |> l
+        push!(stages, o)
+    end
+
+    stages
 end
