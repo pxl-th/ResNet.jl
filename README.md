@@ -20,7 +20,7 @@ y = x |> model
 - extract features:
 
 ```julia
-features = x |> model.entry |> model.encoder
+features = x |> model.entry |> model.pooling |> model.layers
 ```
 
 - extract list of features:
