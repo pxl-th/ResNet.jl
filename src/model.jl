@@ -3,6 +3,8 @@ struct ResNetModel{E, P, C, H}
     pooling::P
     layers::C
     head::H
+
+    stages_channels::Vector{Int64}
 end
 Flux.@functor ResNetModel
 
@@ -28,6 +30,10 @@ function ResNetModel(;
     channels = [64, 128, 256, 512]
     strides = [1, 2, 2, 2]
     repeats, block, expansion = config[size]
+    stages_channels = [
+        in_channels, 64, 64 * expansion,
+        128 * expansion, 256 * expansion, 512 * expansion,
+    ]
 
     entry = Chain(
         Conv((7, 7), in_channels=>64, pad=3, stride=2, bias=false),
@@ -52,7 +58,7 @@ function ResNetModel(;
         in_channels = out_channels * expansion
     end
 
-    ResNetModel(entry, pooling, Chain(layers...), head)
+    ResNetModel(entry, pooling, Chain(layers...), head, stages_channels)
 end
 
 function (m::ResNetModel)(x::AbstractArray{T}) where T

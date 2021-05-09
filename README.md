@@ -1,7 +1,5 @@
 # ResNet
 
-## Inference
-
 Create model:
 
 ```julia
@@ -28,3 +26,6 @@ features = x |> model.entry |> model.pooling |> model.layers
 ```julia
 features = model(x, Val(:stages))
 ```
+
+Number of channels for each element of `features`
+can be seen in `model.stages_channels` list.
