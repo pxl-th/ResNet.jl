@@ -28,4 +28,6 @@ features = model(x, Val(:stages))
 ```
 
 Number of channels for each element of `features`
-can be seen in `model.stages_channels` list.
+can be retrieved by `stages_channels(model)` method.
+
+Size of the model is in `model.size`.

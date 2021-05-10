@@ -6,15 +6,20 @@ using Flux
 include("blocks.jl")
 include("model.jl")
 
-# function main()
-#     model = ResNetModel(;size=50, in_channels=1, classes=nothing)
-#     x = randn(Float32, 224, 224, 1, 1)
-#     features = model(x, Val(:stages))
-#     for f in features
-#         @info size(f)
-#     end
-#     @info model.stages_channels
-# end
-# main()
+function main()
+    model = ResNetModel(;size=50, in_channels=3, classes=10) |> gpu
+    @info model.size
+    @info stages_channels(model)
+
+    x = randn(Float32, 224, 224, 3, 1) |> gpu
+    o = x |> model
+    @info size(o)
+
+    features = model(x, Val(:stages))
+    for f in features
+        @info size(f), typeof(f)
+    end
+end
+main()
 
 end
