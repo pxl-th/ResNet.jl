@@ -7,7 +7,7 @@ include("blocks.jl")
 include("model.jl")
 
 # function main()
-#     model = ResNetModel(;size=50, in_channels=3, classes=10) |> gpu
+#     model = ResNetModel(;size=18, in_channels=3, classes=10, use_bn=false) |> gpu
 #     @info model.size
 #     @info stages_channels(model)
 

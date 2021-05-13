@@ -13,6 +13,7 @@ struct ResNetModel{E, P, C, H}
     head::H
 
     size::Int64
+    use_bn::Bool
 end
 Flux.@functor ResNetModel
 
@@ -20,6 +21,7 @@ function ResNetModel(;
     size::Int64 = 18,
     in_channels::Int64 = 3,
     classes::Union{Int64, Nothing} = 1000,
+    use_bn::Bool = true,
 )
     if !(size in keys(ResNetConfig))
         throw(
@@ -32,9 +34,10 @@ function ResNetModel(;
     strides = [1, 2, 2, 2]
     repeats, block, expansion = ResNetConfig[size]
 
+    activation = x -> x .|> relu
     entry = Chain(
         Conv((7, 7), in_channels=>64, pad=3, stride=2, bias=false),
-        BatchNorm(64, relu),
+        bn_or_relu(64, use_bn),
     )
     pooling = MaxPool((3, 3), pad=1, stride=2)
 
@@ -50,12 +53,13 @@ function ResNetModel(;
     in_channels = 64
     for (out_channels, repeat, stride) in zip(channels, repeats, strides)
         push!(layers, make_layer(
-            block, in_channels=>out_channels, repeat, expansion, stride
+            block, in_channels=>out_channels, repeat, expansion, stride;
+            use_bn,
         ))
         in_channels = out_channels * expansion
     end
 
-    ResNetModel(entry, pooling, Chain(layers...), head, size)
+    ResNetModel(entry, pooling, Chain(layers...), head, size, use_bn)
 end
 
 @inline in_channels(r::ResNetModel) = size(r.entry[1].weight, 3)
