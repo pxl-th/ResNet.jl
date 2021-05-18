@@ -1,8 +1,6 @@
 function bn_or_relu(channels::Int64, use_bn::Bool)
     if use_bn
-        return BatchNorm(
-            channels, relu; ϵ=Float16(1f-5), momentum=Float16(0.1f0),
-        )
+        return BatchNorm(channels, relu)
     end
     x -> x .|> relu
 end
@@ -48,7 +46,7 @@ function make_connection(channels::Pair{Int64, Int64}, stride::Int64)
     stride == 1 && channels[1] == channels[2] && return +
     Shortcut(Chain(
         Conv((1, 1), channels; stride, bias=false),
-        BatchNorm(channels[2]; ϵ=Float16(1f-5), momentum=Float16(0.1f0)),
+        BatchNorm(channels[2]),
     ))
 end
 
