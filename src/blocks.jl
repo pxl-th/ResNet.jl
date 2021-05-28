@@ -15,7 +15,7 @@ function BasicBlock(
         Conv((3, 3), channels[2]=>channels[2]; pad=1, bias=false),
         maybe_bn(channels[2], use_bn),
     )
-    Chain(SkipConnection(layer, connection), x -> relu.(x))
+    Chain(SkipConnection(layer, connection), activation)
 end
 
 function Bottleneck(
