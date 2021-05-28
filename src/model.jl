@@ -37,16 +37,16 @@ function ResNetModel(;
     activation = x -> x .|> relu
     entry = Chain(
         Conv((7, 7), in_channels=>64, pad=3, stride=2, bias=false),
-        bn_or_relu(64, use_bn),
+        maybe_bn(64, use_bn),
+        activation,
     )
     pooling = MaxPool((3, 3), pad=1, stride=2)
 
+    head = nothing
     if classes ≢ nothing
         head = Chain(
             MeanPool((7, 7)), flatten, Dense(512 * expansion, classes),
         )
-    else
-        head = nothing
     end
 
     layers = []
