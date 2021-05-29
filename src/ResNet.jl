@@ -1,5 +1,5 @@
 module ResNet
-export ResNetModel, stages_channels
+export ResNetModel, stages_channels, from_pretrained
 
 using BSON
 using Pickle
