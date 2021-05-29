@@ -34,11 +34,9 @@ function ResNetModel(;
     strides = [1, 2, 2, 2]
     repeats, block, expansion = ResNetConfig[size]
 
-    activation = x -> x .|> relu
     entry = Chain(
         Conv((7, 7), in_channels=>64, pad=3, stride=2, bias=false),
-        maybe_bn(64, use_bn),
-        activation,
+        maybe_bn(64, use_bn, relu),
     )
     pooling = MaxPool((3, 3), pad=1, stride=2)
 
@@ -72,8 +70,7 @@ function stages_channels(r::ResNetModel)
     ]
 end
 
-(m::ResNetModel)(x::AbstractArray{T}) where T =
-    x |> m.entry |> m.pooling |> m.layers |> m.head
+(m::ResNetModel)(x) = x |> m.entry |> m.pooling |> m.layers |> m.head
 
 function (m::ResNetModel)(x, ::Val{:stages})
     stages = Vector{typeof(x)}(undef, 0)

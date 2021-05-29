@@ -1,6 +1,6 @@
-function maybe_bn(channels::Int64, use_bn::Bool)
-    use_bn && return BatchNorm(channels)
-    identity
+function maybe_bn(channels::Int64, use_bn::Bool, λ=identity)
+    use_bn && return BatchNorm(channels, λ)
+    λ == identity ? identity : (x -> λ.(x))
 end
 
 function BasicBlock(
@@ -10,8 +10,7 @@ function BasicBlock(
     activation = x -> x .|> relu
     layer = Chain(
         Conv((3, 3), channels; stride, pad=1, bias=false),
-        maybe_bn(channels[2], use_bn),
-        activation,
+        maybe_bn(channels[2], use_bn, relu),
         Conv((3, 3), channels[2]=>channels[2]; pad=1, bias=false),
         maybe_bn(channels[2], use_bn),
     )
@@ -25,11 +24,9 @@ function Bottleneck(
     activation = x -> x .|> relu
     layer = Chain(
         Conv((1, 1), channels, bias=false),
-        maybe_bn(channels[2], use_bn),
-        activation,
+        maybe_bn(channels[2], use_bn, relu),
         Conv((3, 3), channels[2]=>channels[2]; stride, pad=1, bias=false),
-        maybe_bn(channels[2], use_bn),
-        activation,
+        maybe_bn(channels[2], use_bn, relu),
         Conv((1, 1), channels[2]=>(channels[2] * expansion); bias=false),
         maybe_bn(channels[2] * expansion, use_bn),
     )
