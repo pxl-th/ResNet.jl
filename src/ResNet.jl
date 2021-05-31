@@ -14,33 +14,33 @@ include("blocks.jl")
 include("model.jl")
 include("load_utils.jl")
 
-function main()
-    device = cpu
+# function main()
+#     device = cpu
 
-    # model = from_pretrained(;model_size=18)
-    model = ResNetModel(;size=18, classes=10)
-    model = model |> device
-    θ = model |> params
-    @info model.size
-    @info stages_channels(model)
+#     # model = from_pretrained(;model_size=18)
+#     model = ResNetModel(;size=18, classes=10)
+#     model = model |> device
+#     θ = model |> params
+#     @info model.size
+#     @info stages_channels(model)
 
-    x = randn(Float32, 224, 224, 3, 1) |> device
-    # y = randn(Float32, 10, 2) |> device
+#     x = randn(Float32, 224, 224, 3, 1) |> device
+#     # y = randn(Float32, 10, 2) |> device
 
-    features = model(x, Val(:stages))
-    for f in features
-        @info size(f), typeof(f)
-    end
+#     features = model(x, Val(:stages))
+#     for f in features
+#         @info size(f), typeof(f)
+#     end
 
-    o = model(x)
-    @info typeof(o), size(o)
+#     o = model(x)
+#     @info typeof(o), size(o)
 
-    # g = gradient(θ) do
-    #     o = x |> model
-    #     Flux.mse(o, y)
-    # end
-    # @info g
-end
+#     # g = gradient(θ) do
+#     #     o = x |> model
+#     #     Flux.mse(o, y)
+#     # end
+#     # @info g
+# end
 
 # function main()
 #     device = gpu
@@ -65,6 +65,6 @@ end
 #     end
 # end
 
-main()
+# main()
 
 end
