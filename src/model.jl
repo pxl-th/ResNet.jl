@@ -63,14 +63,14 @@ end
 @inline in_channels(r::ResNetModel) = size(r.entry[1].weight, 3)
 
 function stages_channels(r::ResNetModel)
-    expansion = ResNetConfig[r.size][3]
-    (64, 64 * expansion, 128 * expansion, 256 * expansion, 512 * expansion)
+    e = ResNetConfig[r.size][3]
+    (in_channels(r), 64, 64 * e, 128 * e, 256 * e, 512 * e)
 end
 
 (m::ResNetModel)(x) = x |> m.entry |> m.pooling |> m.layers |> m.head
 
 function (m::ResNetModel)(x, ::Val{:stages})
-    stages = Vector{typeof(x)}(undef, 0)
+    stages = [x]
 
     o = x |> m.entry
     push!(stages, o)
@@ -80,6 +80,5 @@ function (m::ResNetModel)(x, ::Val{:stages})
         o = o |> l
         push!(stages, o)
     end
-
     stages
 end
