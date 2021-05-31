@@ -17,17 +17,14 @@ include("load_utils.jl")
 # function main()
 #     device = cpu
 
-#     model = from_pretrained(;model_size=18)
-#     # model = ResNetModel(;size=18, in_channels=3, classes=1000, use_bn=true)
+#     # model = from_pretrained(;model_size=18)
+#     model = ResNetModel(;size=18, classes=10)
 #     model = model |> device
+#     θ = model |> params
 #     @info model.size
 #     @info stages_channels(model)
 
-#     θ = model |> params
-
-#     # x = randn(Float32, 512, 341, 3, 1) |> device
-#     # x = randn(Float32, 224, 224, 3, 1) |> device
-#     x = randn(Float32, 416, 416, 3, 1) |> device
+#     x = randn(Float32, 224, 224, 3, 1) |> device
 #     # y = randn(Float32, 1000, 2) |> device
 
 #     features = model(x, Val(:stages))
@@ -67,6 +64,7 @@ include("load_utils.jl")
 #         @info "Top 5 classes: $(o[end:-1:end - 5] .- 1)"
 #     end
 # end
+
 # main()
 
 end
