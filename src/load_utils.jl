@@ -101,10 +101,6 @@ function from_pretrained(;
     _load_entry!(model.entry, params)
     _load_layers!(model.layers, params, model.size)
     if model.head ≢ nothing
-        println(model.head[end])
-        println((model.head[end].weight) |> size)
-        println((model.head[end].bias) |> size)
-
         copyto!(model.head[end].weight, params["fc.weight"])
         copyto!(model.head[end].bias, params["fc.bias"])
     end

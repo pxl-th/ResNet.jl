@@ -52,10 +52,11 @@ include("load_utils.jl")
 #         raw"C:\Users\tonys\Downloads\elephant2-r.jpg",
 #         raw"C:\Users\tonys\Downloads\spaceshuttle-r.jpg",
 #     ]
+#     μ = reshape([0.485, 0.456, 0.406], (3, 1, 1))
+#     σ = reshape([0.229, 0.224, 0.225], (3, 1, 1))
 #     for image in images
 #         x = Images.load(image) |> channelview .|> Float32
-#         x .-= reshape([0.485, 0.456, 0.406], (3, 1, 1))
-#         x ./= reshape([0.229, 0.224, 0.225], (3, 1, 1))
+#         @. x = (x - μ) / σ
 #         x = Flux.unsqueeze(permutedims(x, (3, 2, 1)), 4)
 
 #         @info "Image $image ($(size(x))):"
@@ -64,7 +65,6 @@ include("load_utils.jl")
 #         @info "Top 5 classes: $(o[end:-1:end - 5] .- 1)"
 #     end
 # end
-
 # main()
 
 end
