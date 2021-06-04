@@ -1,5 +1,5 @@
-struct Shortcut{S}
-    s::S
+struct Shortcut
+    s
 end
 Flux.@functor Shortcut
 (s::Shortcut)(mx, x) = mx + s.s(x)
@@ -14,9 +14,9 @@ function BasicBlock(
     channels::Pair{Int64, Int64}, connection; stride::Int64 = 1,
 )
     layer = Chain(
-        Conv((3, 3), channels; stride=(stride, stride), pad=(1, 1), bias=false),
+        Conv((3, 3), channels; stride, pad=1, bias=false),
         BatchNorm(channels[2], relu),
-        Conv((3, 3), channels[2]=>channels[2]; pad=(1, 1), bias=false),
+        Conv((3, 3), channels[2]=>channels[2]; pad=1, bias=false),
         BatchNorm(channels[2]),
     )
     ResidualBlock(SkipConnection(layer, connection))
@@ -29,7 +29,7 @@ function Bottleneck(
     layer = Chain(
         Conv((1, 1), channels, bias=false),
         BatchNorm(channels[2], relu),
-        Conv((3, 3), channels[2]=>channels[2]; stride=(stride, stride), pad=(1, 1), bias=false),
+        Conv((3, 3), channels[2]=>channels[2]; stride, pad=1, bias=false),
         BatchNorm(channels[2], relu),
         Conv((1, 1), channels[2]=>(channels[2] * expansion); bias=false),
         BatchNorm(channels[2] * expansion),
@@ -46,7 +46,7 @@ function make_layer(
         connection = +
     else
         connection = Shortcut(Chain(
-            Conv((1, 1), channels; stride=(stride, stride), bias=false),
+            Conv((1, 1), channels; stride, bias=false),
             BatchNorm(channels[2]),
         ))
     end

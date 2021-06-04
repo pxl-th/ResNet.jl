@@ -1,8 +1,8 @@
-struct ResNetModel{E, P, C, H}
-    entry::E
-    pooling::P
-    layers::C
-    head::H
+struct ResNetModel
+    entry
+    pooling
+    layers
+    head
 
     size::Int64
 end
@@ -24,7 +24,7 @@ function (m::ResNetModel)(x, ::Val{:stages})
     stages
 end
 
-const ResNetConfig = Dict(
+const Config = Dict(
     18=>((2, 2, 2, 2), BasicBlock, 1),
     34=>((3, 4, 6, 3), BasicBlock, 1),
     50=>((3, 4, 6, 3), Bottleneck, 4),
@@ -32,18 +32,18 @@ const ResNetConfig = Dict(
     152=>((3, 8, 36, 3), Bottleneck, 4),
 )
 
-function ResNetModel(;
-    size::Int64 = 18,
+function ResNetModel(
+    model_size::Int64 = 18;
     in_channels::Int64 = 3,
     classes::Union{Int64, Nothing} = 1000,
 )
-    if !(size in keys(ResNetConfig))
+    if !(model_size in keys(Config))
         throw(
-            "Invalid size if the model [$size]. " *
-            "Supported sizes are $(keys(ResNetConfig))."
+            "Invalid mode size [$model_size]. " *
+            "Supported sizes are $(keys(Config))."
         )
     end
-    repeats, block, expansion = ResNetConfig[size]
+    repeats, block, expansion = Config[model_size]
 
     entry = Chain(
         Conv((7, 7), in_channels=>64, pad=(3, 3), stride=(2, 2), bias=false),
@@ -70,12 +70,12 @@ function ResNetModel(;
         in_channels = out_channels * expansion
     end
 
-    ResNetModel(entry, pooling, Chain(layers...), head, size)
+    ResNetModel(entry, pooling, Chain(layers...), head, model_size)
 end
 
 @inline in_channels(r::ResNetModel) = size(r.entry[1].weight, 3)
 
 function stages_channels(r::ResNetModel)
-    e = ResNetConfig[r.size][3]
+    e = Config[r.size][3]
     (in_channels(r), 64, 64 * e, 128 * e, 256 * e, 512 * e)
 end

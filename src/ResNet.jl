@@ -1,49 +1,53 @@
 module ResNet
 export ResNetModel, stages_channels
 
-using BSON
 using Pickle
 using Downloads: download
-using Images
 
-using LinearAlgebra
-# using CUDA
-# CUDA.allowscalar(false)
+using CUDA
+CUDA.allowscalar(false)
 using Flux
 
 include("blocks.jl")
 include("model.jl")
 include("load_utils.jl")
 
+# using LinearAlgebra
 # function main()
 #     device = gpu
 
-#     model = ResNetModel(;size=18, classes=4)
+#     model = ResNetModel(18; classes=4)
 #     model = model |> device
 #     θ = model |> params
 #     @info model.size
 #     @info stages_channels(model)
 
 #     x = randn(Float32, 224, 224, 3, 1) |> device
-#     y = randn(Float32, 4, 2) |> device
+#     y = randn(Float32, 4, 1) |> device
+#     optimiser = ADAM(3e-4)
 
-#     x |> model
+#     for _ in 1:10
+#         g = gradient(θ) do
+#             o = x |> model
+#             l = Flux.mse(o, y)
+#             println(l)
+#             l
+#         end
 
-#     g = gradient(θ) do
-#         o = x |> model
-#         Flux.mse(o, y)
-#     end
+#         @info "Grads..."
+#         for t in θ
+#             println(size(g[t]), norm(g[t]))
+#         end
 
-#     @info "Grads..."
-#     for t in θ
-#         println(size(g[t]), norm(g[t]))
+#         Flux.Optimise.update!(optimiser, θ, g)
 #     end
 # end
 # main()
 
+# using Images
 # function main()
-#     device = gpu
-#     model = from_pretrained(;model_size=18)
+#     device = cpu
+#     model = from_pretrained(18)
 #     model = model |> testmode! |> device
 #     @info "Model loaded."
 

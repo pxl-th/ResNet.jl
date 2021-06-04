@@ -16,7 +16,7 @@ end
 
 function _load_basic_layer!(basic::Chain, params, layer_id::Int)
     for repeat in 1:length(basic)
-        skipcon = basic[repeat][1]
+        skipcon = basic[repeat].block
         layer = skipcon.layers
         lk = "layer$layer_id.$(repeat - 1)."
 
@@ -54,9 +54,8 @@ function _load_layers!(layers::Chain, params, model_size::Int)
     end
 end
 
-function from_pretrained(;
-    model_size::Int, cache_dir::Union{String, Nothing} = nothing,
-    kwargs...,
+function from_pretrained(
+    model_size::Int; cache_dir::Union{String, Nothing} = nothing, kwargs...,
 )
     # url_base = "https://download.pytorch.org/models/"
     url_base = "https://dl.fbaipublicfiles.com/semiweaksupervision/model_files/"
@@ -96,7 +95,7 @@ function from_pretrained(;
     end
 
     params = Pickle.Torch.THload(params_path)
-    model = ResNetModel(;size=model_size, kwargs...)
+    model = ResNetModel(model_size; kwargs...)
 
     _load_entry!(model.entry, params)
     _load_layers!(model.layers, params, model.size)
