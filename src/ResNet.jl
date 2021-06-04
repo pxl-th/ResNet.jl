@@ -6,8 +6,9 @@ using Pickle
 using Downloads: download
 using Images
 
-using CUDA
-CUDA.allowscalar(false)
+using LinearAlgebra
+# using CUDA
+# CUDA.allowscalar(false)
 using Flux
 
 include("blocks.jl")
@@ -15,32 +16,30 @@ include("model.jl")
 include("load_utils.jl")
 
 # function main()
-#     device = cpu
+#     device = gpu
 
-#     # model = from_pretrained(;model_size=18)
-#     model = ResNetModel(;size=18, classes=10)
+#     model = ResNetModel(;size=18, classes=4)
 #     model = model |> device
 #     θ = model |> params
 #     @info model.size
 #     @info stages_channels(model)
 
 #     x = randn(Float32, 224, 224, 3, 1) |> device
-#     # y = randn(Float32, 10, 2) |> device
+#     y = randn(Float32, 4, 2) |> device
 
-#     features = model(x, Val(:stages))
-#     for f in features
-#         @info size(f), typeof(f)
+#     x |> model
+
+#     g = gradient(θ) do
+#         o = x |> model
+#         Flux.mse(o, y)
 #     end
 
-#     o = model(x)
-#     @info typeof(o), size(o)
-
-#     # g = gradient(θ) do
-#     #     o = x |> model
-#     #     Flux.mse(o, y)
-#     # end
-#     # @info g
+#     @info "Grads..."
+#     for t in θ
+#         println(size(g[t]), norm(g[t]))
+#     end
 # end
+# main()
 
 # function main()
 #     device = gpu
