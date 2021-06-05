@@ -1,50 +1,18 @@
 module ResNet
 export ResNetModel, stages_channels
 
-using BSON
 using Pickle
 using Downloads: download
-using Images
-
-using CUDA
-CUDA.allowscalar(false)
 using Flux
 
 include("blocks.jl")
 include("model.jl")
 include("load_utils.jl")
 
+# using Images
 # function main()
 #     device = cpu
-
-#     # model = from_pretrained(;model_size=18)
-#     model = ResNetModel(;size=18, classes=10)
-#     model = model |> device
-#     θ = model |> params
-#     @info model.size
-#     @info stages_channels(model)
-
-#     x = randn(Float32, 224, 224, 3, 1) |> device
-#     # y = randn(Float32, 10, 2) |> device
-
-#     features = model(x, Val(:stages))
-#     for f in features
-#         @info size(f), typeof(f)
-#     end
-
-#     o = model(x)
-#     @info typeof(o), size(o)
-
-#     # g = gradient(θ) do
-#     #     o = x |> model
-#     #     Flux.mse(o, y)
-#     # end
-#     # @info g
-# end
-
-# function main()
-#     device = gpu
-#     model = from_pretrained(;model_size=18)
+#     model = from_pretrained(18)
 #     model = model |> testmode! |> device
 #     @info "Model loaded."
 

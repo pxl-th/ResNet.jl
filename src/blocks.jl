@@ -1,66 +1,60 @@
-function maybe_bn(channels::Int64, use_bn::Bool, λ=identity)
-    use_bn && return BatchNorm(channels, λ)
-    λ == identity ? identity : (x -> λ.(x))
+struct Shortcut
+    s
 end
+Flux.@functor Shortcut
+(s::Shortcut)(mx, x) = mx + s.s(x)
+
+struct ResidualBlock
+    block
+end
+Flux.@functor ResidualBlock
+(b::ResidualBlock)(x) = x |> b.block .|> relu
 
 function BasicBlock(
-    channels::Pair{Int64, Int64}, stride::Int64 = 1, connection = +;
-    use_bn::Bool,
+    channels::Pair{Int64, Int64}, connection; stride::Int64 = 1,
 )
-    activation = x -> x .|> relu
     layer = Chain(
         Conv((3, 3), channels; stride, pad=1, bias=false),
-        maybe_bn(channels[2], use_bn, relu),
+        BatchNorm(channels[2], relu),
         Conv((3, 3), channels[2]=>channels[2]; pad=1, bias=false),
-        maybe_bn(channels[2], use_bn),
+        BatchNorm(channels[2]),
     )
-    Chain(SkipConnection(layer, connection), activation)
+    ResidualBlock(SkipConnection(layer, connection))
 end
 
 function Bottleneck(
-    channels::Pair{Int64, Int64}, stride::Int = 1, connection = +,
-    expansion::Int = 4; use_bn::Bool,
+    channels::Pair{Int64, Int64}, connection;
+    stride::Int = 1, expansion::Int = 4,
 )
-    activation = x -> x .|> relu
     layer = Chain(
         Conv((1, 1), channels, bias=false),
-        maybe_bn(channels[2], use_bn, relu),
+        BatchNorm(channels[2], relu),
         Conv((3, 3), channels[2]=>channels[2]; stride, pad=1, bias=false),
-        maybe_bn(channels[2], use_bn, relu),
+        BatchNorm(channels[2], relu),
         Conv((1, 1), channels[2]=>(channels[2] * expansion); bias=false),
-        maybe_bn(channels[2] * expansion, use_bn),
+        BatchNorm(channels[2] * expansion),
     )
-    Chain(SkipConnection(layer, connection), activation)
-end
-
-struct Shortcut{S}
-    s::S
-end
-Flux.@functor Shortcut
-
-function (s::Shortcut)(mx::AbstractArray{T}, x::AbstractArray{T}) where T
-    mx + s.s(x)
-end
-
-function make_connection(channels::Pair{Int64, Int64}, stride::Int64)
-    stride == 1 && channels[1] == channels[2] && return +
-    Shortcut(Chain(
-        Conv((1, 1), channels; stride, bias=false),
-        BatchNorm(channels[2]),
-    ))
+    ResidualBlock(SkipConnection(layer, connection))
 end
 
 function make_layer(
     block, channels::Pair{Int64, Int64}, repeat::Int64,
-    expansion::Int64, stride::Int64 = 1; use_bn::Bool,
+    expansion::Int64, stride::Int64 = 1,
 )
     expanded_channels = channels[2] * expansion
-    connection = make_connection(channels[1]=>expanded_channels, stride)
+    if stride == 1 && channels[1] == channels[2]
+        connection = +
+    else
+        connection = Shortcut(Chain(
+            Conv((1, 1), channels; stride, bias=false),
+            BatchNorm(channels[2]),
+        ))
+    end
 
-    layer = []
-    push!(layer, block(channels, stride, connection; use_bn))
+    layer = ResidualBlock[]
+    push!(layer, block(channels, connection; stride))
     for i in 2:repeat
-        push!(layer, block(expanded_channels=>channels[2]; use_bn))
+        push!(layer, block(expanded_channels=>channels[2], +))
     end
     Chain(layer...)
 end
