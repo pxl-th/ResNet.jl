@@ -3,7 +3,8 @@
 Create model:
 
 ```julia
-model = ResNetModel(;size=34, in_channels=3, classes=10)
+model = ResNetModel(18; in_channels=3, classes=10)
+model = ResNet.from_pretrained(18)
 ```
 
 or you can ommit classification layer,
