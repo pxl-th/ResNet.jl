@@ -11,7 +11,7 @@ Flux.@functor ResNetModel
 (m::ResNetModel)(x) = x |> m.entry |> m.pooling |> m.layers |> m.head
 
 function (m::ResNetModel)(x, ::Val{:stages})
-    stages = [x]
+    stages = typeof(x)[]
 
     o = x |> m.entry
     push!(stages, o)
@@ -73,9 +73,7 @@ function ResNetModel(
     ResNetModel(entry, pooling, Chain(layers...), head, model_size)
 end
 
-@inline in_channels(r::ResNetModel) = size(r.entry[1].weight, 3)
-
 function stages_channels(r::ResNetModel)
     e = Config[r.size][3]
-    (in_channels(r), 64, 64 * e, 128 * e, 256 * e, 512 * e)
+    (64, 64 * e, 128 * e, 256 * e, 512 * e)
 end
