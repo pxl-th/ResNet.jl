@@ -1,61 +1,47 @@
-struct ResNetModel
-    entry
-    pooling
-    layers
-    head
+struct ResidualNetwork{E, P, L, H}
+    entry::E
+    pooling::P
+    layers::L
+    head::H
 
     size::Int64
+    stages::NTuple{5, Int64}
 end
-Flux.@functor ResNetModel
+Flux.@functor ResidualNetwork
 
-(m::ResNetModel)(x) = x |> m.entry |> m.pooling |> m.layers |> m.head
+(m::ResidualNetwork)(x) = x |> m.entry |> m.pooling |> m.layers |> m.head
 
-function (m::ResNetModel)(x, ::Val{:stages})
-    stages = typeof(x)[]
-
-    o = x |> m.entry
-    push!(stages, o)
-    o = o |> m.pooling
-
-    for l in m.layers
-        o = o |> l
-        push!(stages, o)
-    end
-    stages
+function (m::ResidualNetwork)(x, ::Val{:stages})
+    stages = (
+        m.entry, Chain(m.pooling, m.layers[1]),
+        m.layers[2], m.layers[3], m.layers[4])
+    Flux.extraChain(stages, x)
 end
 
-const Config = Dict(
-    18=>((2, 2, 2, 2), BasicBlock, 1),
-    34=>((3, 4, 6, 3), BasicBlock, 1),
-    50=>((3, 4, 6, 3), Bottleneck, 4),
-    101=>((3, 4, 23, 3), Bottleneck, 4),
-    152=>((3, 8, 36, 3), Bottleneck, 4),
+function ResidualNetwork(
+    model_size::Int64 = 18; in_channels::Int64 = 3, classes::Union{Int64, Nothing} = 1000,
 )
+    config = Dict(
+        18=>((2, 2, 2, 2), BasicBlock, 1),
+        34=>((3, 4, 6, 3), BasicBlock, 1),
+        50=>((3, 4, 6, 3), Bottleneck, 4),
+        101=>((3, 4, 23, 3), Bottleneck, 4),
+        152=>((3, 8, 36, 3), Bottleneck, 4))
 
-function ResNetModel(
-    model_size::Int64 = 18;
-    in_channels::Int64 = 3,
-    classes::Union{Int64, Nothing} = 1000,
-)
-    if !(model_size in keys(Config))
-        throw(
-            "Invalid mode size [$model_size]. " *
-            "Supported sizes are $(keys(Config))."
-        )
-    end
-    repeats, block, expansion = Config[model_size]
+    model_size in keys(config) || throw(
+        "Invalid mode size [$model_size]. Supported sizes are $(keys(config)).")
+
+    repeats, block, expansion = config[model_size]
+    stages_channels = _get_stages_channels(expansion)
 
     entry = Chain(
         Conv((7, 7), in_channels=>64, pad=(3, 3), stride=(2, 2), bias=false),
-        BatchNorm(64, relu),
-    )
+        BatchNorm(64, relu))
     pooling = MaxPool((3, 3), pad=(1, 1), stride=(2, 2))
 
     head = nothing
     if classes ≢ nothing
-        head = Chain(
-            MeanPool((7, 7)), flatten, Dense(512 * expansion, classes),
-        )
+        head = Chain(MeanPool((7, 7)), flatten, Dense(512 * expansion, classes))
     end
 
     in_channels = 64
@@ -65,15 +51,15 @@ function ResNetModel(
     layers = []
     for (out_channels, repeat, stride) in zip(channels, repeats, strides)
         push!(layers, make_layer(
-            block, in_channels=>out_channels, repeat, expansion, stride,
-        ))
+            block, in_channels=>out_channels, repeat, expansion, stride))
         in_channels = out_channels * expansion
     end
+    layers = Chain(layers...)
 
-    ResNetModel(entry, pooling, Chain(layers...), head, model_size)
+    ResidualNetwork(
+        entry, pooling, layers, head,
+        model_size, stages_channels)
 end
 
-function stages_channels(r::ResNetModel)
-    e = Config[r.size][3]
-    (64, 64 * e, 128 * e, 256 * e, 512 * e)
-end
+@inline _get_stages_channels(expansion) = (
+    64, 64 * expansion, 128 * expansion, 256 * expansion, 512 * expansion)
