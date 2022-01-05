@@ -8,11 +8,9 @@ struct ResidualBlock{B}
     block::B
 end
 Flux.@functor ResidualBlock
-(b::ResidualBlock)(x) = x |> b.block .|> relu
+(b::ResidualBlock)(x) = relu.(b.block(x))
 
-function BasicBlock(
-    channels::Pair{Int64, Int64}, connection; stride::Int64 = 1,
-)
+function BasicBlock(channels, connection; stride = 1)
     layer = Chain(
         Conv((3, 3), channels; stride, pad=1, bias=false),
         BatchNorm(channels[2], relu),
@@ -21,10 +19,7 @@ function BasicBlock(
     ResidualBlock(SkipConnection(layer, connection))
 end
 
-function Bottleneck(
-    channels::Pair{Int64, Int64}, connection;
-    stride::Int = 1, expansion::Int = 4,
-)
+function Bottleneck(channels, connection; stride = 1, expansion = 4)
     layer = Chain(
         Conv((1, 1), channels, bias=false),
         BatchNorm(channels[2], relu),
@@ -35,21 +30,19 @@ function Bottleneck(
     ResidualBlock(SkipConnection(layer, connection))
 end
 
-function make_layer(
-    block, channels::Pair{Int64, Int64}, repeat::Int64,
-    expansion::Int64, stride::Int64 = 1,
-)
-    expanded_channels = channels[2] * expansion
+function make_layer(block, channels, repeat, expansion, stride = 1)
+    layer = ResidualBlock[]
+
     if stride == 1 && channels[1] == channels[2]
-        connection = +
+        push!(layer, block(channels, +; stride))
     else
-        connection = Shortcut(Chain(
+        c = Shortcut(Chain(
             Conv((1, 1), channels; stride, bias=false),
             BatchNorm(channels[2])))
+        push!(layer, block(channels, c; stride))
     end
 
-    layer = ResidualBlock[]
-    push!(layer, block(channels, connection; stride))
+    expanded_channels = channels[2] * expansion
     for _ in 2:repeat
         push!(layer, block(expanded_channels=>channels[2], +))
     end

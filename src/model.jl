@@ -9,18 +9,12 @@ struct ResidualNetwork{E, P, L, H}
 end
 Flux.@functor ResidualNetwork
 
-(m::ResidualNetwork)(x) = x |> m.entry |> m.pooling |> m.layers |> m.head
+(m::ResidualNetwork)(x) = m.head(m.layers(m.pooling(m.entry(x))))
+(m::ResidualNetwork)(x, ::Val{:stages}) = Flux.extraChain((
+    m.entry, Chain(m.pooling, m.layers[1]),
+    m.layers[2], m.layers[3], m.layers[4]), x)
 
-function (m::ResidualNetwork)(x, ::Val{:stages})
-    stages = (
-        m.entry, Chain(m.pooling, m.layers[1]),
-        m.layers[2], m.layers[3], m.layers[4])
-    Flux.extraChain(stages, x)
-end
-
-function ResidualNetwork(
-    model_size::Int64 = 18; in_channels::Int64 = 3, classes::Union{Int64, Nothing} = 1000,
-)
+function ResidualNetwork(model_size = 18; in_channels = 3, classes = 1000)
     config = Dict(
         18=>((2, 2, 2, 2), BasicBlock, 1),
         34=>((3, 4, 6, 3), BasicBlock, 1),
@@ -54,10 +48,9 @@ function ResidualNetwork(
             block, in_channels=>out_channels, repeat, expansion, stride))
         in_channels = out_channels * expansion
     end
-    layers = Chain(layers...)
 
     ResidualNetwork(
-        entry, pooling, layers, head,
+        entry, pooling, Chain(layers...), head,
         model_size, stages_channels)
 end
 
