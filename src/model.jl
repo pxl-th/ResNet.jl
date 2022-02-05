@@ -35,7 +35,7 @@ function ResidualNetwork(model_size = 18; in_channels = 3, classes = 1000)
 
     head = nothing
     if classes ≢ nothing
-        head = Chain(MeanPool((7, 7)), flatten, Dense(512 * expansion, classes))
+        head = Chain(MeanPool((7, 7)), Flux.flatten, Dense(512 * expansion, classes))
     end
 
     in_channels = 64
